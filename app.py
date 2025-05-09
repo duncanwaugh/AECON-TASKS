@@ -1,5 +1,5 @@
 import streamlit as st
-# Set wide mode at the very top
+# Set wide mode and page title before any other Streamlit calls
 st.set_page_config(page_title="Aecon Co‑op Task Tracker", layout="wide")
 
 import pandas as pd
@@ -25,14 +25,12 @@ def save_data(tasks, completed):
         json.dump({"tasks": tasks, "completed_tasks": completed}, f, default=str)
 
 # ---- Initialize State ----
-# Rerun helper for compatibility
-try:
+# Rerun helper: alias Streamlit's experimental_rerun if available
+if hasattr(st, "experimental_rerun"):
     rerun = st.experimental_rerun
-except AttributeError:
-    from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
-    from streamlit.runtime.scriptrunner import RerunException
+else:
     def rerun():
-        raise RerunException(get_script_run_ctx())
+        pass
 
 if 'tasks' not in st.session_state:
     tasks, completed = load_data()
@@ -124,7 +122,7 @@ with col2:
 **Date Assigned:** {task['Date Assigned']}  
 **Due Date:** {task['Due Date']}  
 **Priority:** {task['Priority']}""")
-                st.markdown(f"**Notes:** {task['Notes']}" )
+                st.markdown(f"**Notes:** {task['Notes']}")
 
                 # Time-to-due progress
                 try:
@@ -166,7 +164,6 @@ with col2:
 st.header("🏁 Completed Tasks")
 if st.session_state.completed_tasks:
     dfc = pd.DataFrame(st.session_state.completed_tasks)
-    # Include Notes column for completed tasks
     st.dataframe(dfc[['Task','Assigned By','Date Assigned','Due Date','Priority','Notes']])
 else:
     st.info("No tasks completed yet.")
