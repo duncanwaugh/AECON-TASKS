@@ -13,6 +13,8 @@ DATA_PATH = "tasks_data.json"
 LOGO_PATH = "aecon_logo.png"  # Place Aecon logo here
 
 # ---- Data Persistence ----
+import pandas as pd  # for Excel export
+
 def load_data():
     if os.path.exists(DATA_PATH):
         with open(DATA_PATH, "r") as f:
@@ -21,9 +23,24 @@ def load_data():
     return [], []
 
 
+def export_to_excel(tasks, completed, excel_path="tasks_data.xlsx"):
+    """Export tasks and completed tasks to an Excel workbook with two sheets."""
+    df_tasks = pd.DataFrame(tasks)
+    df_completed = pd.DataFrame(completed)
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        df_tasks.to_excel(writer, sheet_name="Active Tasks", index=False)
+        df_completed.to_excel(writer, sheet_name="Completed Tasks", index=False)
+
+
 def save_data(tasks, completed):
+    # Save JSON
     with open(DATA_PATH, "w") as f:
         json.dump({"tasks": tasks, "completed_tasks": completed}, f, default=str)
+    # Also export to Excel
+    try:
+        export_to_excel(tasks, completed)
+    except Exception as e:
+        st.error(f"Failed to export to Excel: {e}")
 
 # ---- Initialize State ----
 # Rerun helper: alias Streamlit's experimental_rerun if available
