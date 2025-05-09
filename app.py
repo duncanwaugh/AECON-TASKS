@@ -20,6 +20,7 @@ def load_data():
         return data.get("tasks", []), data.get("completed_tasks", [])
     return [], []
 
+
 def save_data(tasks, completed):
     with open(DATA_PATH, "w") as f:
         json.dump({"tasks": tasks, "completed_tasks": completed}, f, default=str)
@@ -52,7 +53,6 @@ subtasks_input = st.sidebar.text_area("Subtasks (one per line)")
 
 if st.sidebar.button("Add Task"):
     if task_name:
-        # parse subtasks
         subs = [s.strip() for s in subtasks_input.splitlines() if s.strip()]
         new_subtasks = [{"Name": s, "Completed": False} for s in subs]
         new_task = {
@@ -112,15 +112,12 @@ with col1:
 
 # Active tasks in right column
 with col2:
-    st.subheader("📝 Active Tasks & Progress")
+    st.subheader("📝 Active Tasks")
     if st.session_state.tasks:
-        today = date.today()
         for i, task in enumerate(st.session_state.tasks):
             with st.expander(task['Task']):
-                # Edit toggle
                 edit = st.checkbox("Edit Task Details", key=f"edit_{i}")
                 if edit:
-                    # Editable fields
                     tn = st.text_input("Task Name", value=task['Task'], key=f"tn_{i}")
                     ab = st.text_input("Assigned By", value=task['Assigned By'], key=f"ab_{i}")
                     da = st.date_input("Date Assigned", datetime.fromisoformat(task['Date Assigned']).date(), key=f"da_{i}")
@@ -128,6 +125,12 @@ with col2:
                     et = st.number_input("Est. Time (hrs)", value=task['Estimated Time (hrs)'], key=f"et_{i}")
                     pr = st.selectbox("Priority", ["Low","Medium","High","Critical"], index=["Low","Medium","High","Critical"].index(task['Priority']), key=f"pr_{i}")
                     no = st.text_area("Notes", value=task['Notes'], key=f"no_{i}")
+                    # Add subtasks only in edit mode
+                    new_sub = st.text_input("New Subtask", key=f"new_sub_{i}")
+                    if st.button("Add Subtask", key=f"add_sub_{i}") and new_sub:
+                        task['Subtasks'].append({"Name": new_sub, "Completed": False})
+                        save_data(st.session_state.tasks, st.session_state.completed_tasks)
+                        rerun()
                     if st.button("Save Changes", key=f"save_{i}"):
                         task.update({
                             'Task': tn, 'Assigned By': ab,
@@ -138,41 +141,14 @@ with col2:
                         st.success("Task updated.")
                         rerun()
                 else:
-                    # Display details
-                    st.markdown(f"""
-**Assigned By:** {task['Assigned By']}  
-**Date Assigned:** {task['Date Assigned']}  
-**Due Date:** {task['Due Date']}  
-**Priority:** {task['Priority']}""")
+                    st.markdown(f"**Assigned By:** {task['Assigned By']}  \n**Date Assigned:** {task['Date Assigned']}  \n**Due Date:** {task['Due Date']}  \n**Priority:** {task['Priority']}")
                     st.markdown(f"**Notes:** {task['Notes']}")
-
-                # Time-to-due progress
-                try:
-                    da = datetime.fromisoformat(task['Date Assigned']).date()
-                    dd = datetime.fromisoformat(task['Due Date']).date()
-                    pct = min(max((today - da).days / max((dd - da).days, 1), 0), 1)
-                    st.progress(pct)
-                except:
-                    pass
-
-                # Subtask progress and list
-                subs = task.get('Subtasks', [])
-                if subs:
-                    done = sum(1 for s in subs if s.get('Completed'))
-                    st.progress(done / len(subs))
-                    for j, s in enumerate(subs):
+                    # List subtasks without progress bars
+                    for j, s in enumerate(task.get('Subtasks', [])):
                         ck = st.checkbox(s['Name'], value=s.get('Completed', False), key=f"sub_{i}_{j}")
                         if ck != s['Completed']:
                             s['Completed'] = ck
                             save_data(st.session_state.tasks, st.session_state.completed_tasks)
-                # Add subtask inline
-                new_sub = st.text_input("New Subtask", key=f"new_sub_{i}")
-                if st.button("Add Subtask", key=f"add_sub_{i}") and new_sub:
-                    task['Subtasks'].append({"Name": new_sub, "Completed": False})
-                    save_data(st.session_state.tasks, st.session_state.completed_tasks)
-                    rerun()
-
-                # Complete task
                 if st.button("Mark Task Completed", key=f"comp_{i}"):
                     st.session_state.completed_tasks.append(st.session_state.tasks.pop(i))
                     save_data(st.session_state.tasks, st.session_state.completed_tasks)
@@ -186,11 +162,7 @@ st.header("🏁 Completed Tasks")
 if st.session_state.completed_tasks:
     for idx, task in enumerate(st.session_state.completed_tasks):
         with st.expander(task['Task']):
-            st.markdown(f"""
-**Assigned By:** {task['Assigned By']}  
-**Date Assigned:** {task['Date Assigned']}  
-**Due Date:** {task['Due Date']}  
-**Priority:** {task['Priority']}""")
+            st.markdown(f"**Assigned By:** {task['Assigned By']}  \n**Date Assigned:** {task['Date Assigned']}  \n**Due Date:** {task['Due Date']}  \n**Priority:** {task['Priority']}")
             st.markdown(f"**Notes:** {task['Notes']}")
             if st.button("Delete Completed Task", key=f"del_comp_{idx}"):
                 st.session_state.completed_tasks.pop(idx)
