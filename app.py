@@ -169,3 +169,9 @@ st.sidebar.markdown(
     "**Teams Calendar:**  \n"
     "Sync via Microsoft Graph API & Azure AD integration."
 )
+st.markdown("""
+<hr style="border:none;height:2px;background:#c8102e;"/>
+<div style="text-align:center;padding:10px;background:#c8102e;color:#fff;">
+  Built by Aecon | For internal use only
+</div>
+""", unsafe_allow_html=True)
