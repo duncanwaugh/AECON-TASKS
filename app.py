@@ -7,7 +7,7 @@ from datetime import date, datetime
 
 # ---- Configuration ----
 DATA_PATH = "tasks_data.json"
-LOGO_PATH = "AECON.png"  # Place Aecon logo here
+LOGO_PATH = "aecon_logo.png"  # Place Aecon logo here
 
 # ---- Data Persistence ----
 def load_data():
@@ -22,6 +22,16 @@ def save_data(tasks, completed):
         json.dump({"tasks": tasks, "completed_tasks": completed}, f, default=str)
 
 # ---- Initialize State ----
+
+# Rerun helper for compatibility
+try:
+    rerun = rerun()
+except AttributeError:
+    from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
+    from streamlit.runtime.scriptrunner import RerunException
+    def rerun():
+        raise RerunException(get_script_run_ctx())
+
 if 'tasks' not in st.session_state:
     tasks, completed = load_data()
     st.session_state.tasks = tasks
@@ -30,7 +40,7 @@ if 'tasks' not in st.session_state:
 # ---- Header ----
 if os.path.exists(LOGO_PATH):
     st.image(LOGO_PATH, width=200)
-st.title("Duncan's Task Tracker")
+st.title("Aecon Co‑op Task Tracker")
 st.markdown("Manage tasks and subtasks during your 4‑month co‑op at Aecon.")
 
 # ---- Sidebar: New Task & Month ----
@@ -58,7 +68,7 @@ if st.sidebar.button("Add Task"):
         st.session_state.tasks.append(new_task)
         save_data(st.session_state.tasks, st.session_state.completed_tasks)
         st.sidebar.success(f"Added task: {task_name}")
-        st.experimental_rerun()
+        rerun()()
     else:
         st.sidebar.error("Task name is required.")
 
@@ -140,14 +150,14 @@ with col2:
                     if new_sub:
                         task['Subtasks'].append({"Name": new_sub, "Completed": False})
                         save_data(st.session_state.tasks, st.session_state.completed_tasks)
-                        st.experimental_rerun()
+                        rerun()()
 
                 # Complete task
                 if st.button("Mark Task Completed", key=f"comp_{i}"):
                     st.session_state.completed_tasks.append(st.session_state.tasks.pop(i))
                     save_data(st.session_state.tasks, st.session_state.completed_tasks)
                     st.success(f"Completed: {task['Task']}")
-                    st.experimental_rerun()
+                    rerun()()
     else:
         st.info("No active tasks. Add one in the sidebar.")
 
@@ -169,9 +179,3 @@ st.sidebar.markdown(
     "**Teams Calendar:**  \n"
     "Sync via Microsoft Graph API & Azure AD integration."
 )
-st.markdown("""
-<hr style="border:none;height:2px;background:#c8102e;"/>
-<div style="text-align:center;padding:10px;background:#c8102e;color:#fff;">
-  Built by Aecon | For internal use only
-</div>
-""", unsafe_allow_html=True)
