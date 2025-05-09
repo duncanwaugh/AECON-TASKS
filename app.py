@@ -7,14 +7,14 @@ import json
 import os
 import calendar
 from datetime import date, datetime
-import openpyxl
 
 # ---- Configuration ----
 DATA_PATH = "tasks_data.json"
 LOGO_PATH = "aecon_logo.png"  # Place Aecon logo here
 
 # ---- Data Persistence ----
-import pandas as pd  # for Excel export
+import openpyxl  # required for Excel export
+import pandas as pd  # for data handling and Excel export
 
 def load_data():
     if os.path.exists(DATA_PATH):
@@ -25,7 +25,7 @@ def load_data():
 
 
 def export_to_excel(tasks, completed, excel_path="tasks_data.xlsx"):
-    """Export tasks and completed tasks to an Excel workbook with two sheets."""
+    """Export tasks and completed tasks to an Excel workbook with two sheets using openpyxl."""
     df_tasks = pd.DataFrame(tasks)
     df_completed = pd.DataFrame(completed)
     with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
@@ -40,8 +40,8 @@ def save_data(tasks, completed):
     # Also export to Excel
     try:
         export_to_excel(tasks, completed)
-    except Exception as e:
-        st.error(f"Failed to export to Excel: {e}")
+    except ImportError as e:
+        st.error(f"Excel export failed, please install openpyxl: {e}")
 
 # ---- Initialize State ----
 # Rerun helper: alias Streamlit's experimental_rerun if available
