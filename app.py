@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 # ---- Configuration ----
 DATA_PATH = "tasks_data.json"
-LOGO_PATH = "AECON.png"  # Place Aecon logo here
+LOGO_PATH = "aecon_logo.png"  # Place Aecon logo here
 
 # ---- Data Persistence ----
 def load_data():
@@ -26,11 +26,7 @@ def save_data(tasks, completed):
 
 # ---- Initialize State ----
 # Rerun helper: alias Streamlit's experimental_rerun if available
-if hasattr(st, "experimental_rerun"):
-    rerun = st.experimental_rerun
-else:
-    def rerun():
-        pass
+rerun = getattr(st, "experimental_rerun", lambda: None)
 
 if 'tasks' not in st.session_state:
     tasks, completed = load_data()
@@ -52,9 +48,13 @@ due_date = st.sidebar.date_input("Due Date", date.today())
 estimated_time = st.sidebar.number_input("Est. Time (hrs)", min_value=0.0, step=0.5)
 priority = st.sidebar.selectbox("Priority", ["Low", "Medium", "High", "Critical"])
 notes = st.sidebar.text_area("Notes")
+subtasks_input = st.sidebar.text_area("Subtasks (one per line)")
 
 if st.sidebar.button("Add Task"):
     if task_name:
+        # parse subtasks
+        subs = [s.strip() for s in subtasks_input.splitlines() if s.strip()]
+        new_subtasks = [{"Name": s, "Completed": False} for s in subs]
         new_task = {
             "Task": task_name,
             "Assigned By": assigned_by,
@@ -63,7 +63,7 @@ if st.sidebar.button("Add Task"):
             "Estimated Time (hrs)": estimated_time,
             "Priority": priority,
             "Notes": notes,
-            "Subtasks": []
+            "Subtasks": new_subtasks
         }
         st.session_state.tasks.append(new_task)
         save_data(st.session_state.tasks, st.session_state.completed_tasks)
@@ -101,7 +101,7 @@ with col1:
                     cell_html = f"<div style='font-weight:bold; text-align:left;'>{d}</div>"
                     for _, t in df_cal[df_cal['due_date'] == date(year, month, d)].iterrows():
                         color = cmap.get(t['Priority'], 'black')
-                        task_name_html = t['Task'] if isinstance(t['Task'], str) else str(t['Task'])
+                        task_name_html = t['Task']
                         cell_html += f"<div style='margin-left:6px; font-size:0.8em; color:{color};'>• {task_name_html}</div>"
                     cells.append(cell_html)
             html_rows.append(cells)
@@ -117,12 +117,34 @@ with col2:
         today = date.today()
         for i, task in enumerate(st.session_state.tasks):
             with st.expander(task['Task']):
-                st.markdown(f"""
+                # Edit toggle
+                edit = st.checkbox("Edit Task Details", key=f"edit_{i}")
+                if edit:
+                    # Editable fields
+                    tn = st.text_input("Task Name", value=task['Task'], key=f"tn_{i}")
+                    ab = st.text_input("Assigned By", value=task['Assigned By'], key=f"ab_{i}")
+                    da = st.date_input("Date Assigned", datetime.fromisoformat(task['Date Assigned']).date(), key=f"da_{i}")
+                    dd = st.date_input("Due Date", datetime.fromisoformat(task['Due Date']).date(), key=f"dd_{i}")
+                    et = st.number_input("Est. Time (hrs)", value=task['Estimated Time (hrs)'], key=f"et_{i}")
+                    pr = st.selectbox("Priority", ["Low","Medium","High","Critical"], index=["Low","Medium","High","Critical"].index(task['Priority']), key=f"pr_{i}")
+                    no = st.text_area("Notes", value=task['Notes'], key=f"no_{i}")
+                    if st.button("Save Changes", key=f"save_{i}"):
+                        task.update({
+                            'Task': tn, 'Assigned By': ab,
+                            'Date Assigned': da.isoformat(), 'Due Date': dd.isoformat(),
+                            'Estimated Time (hrs)': et, 'Priority': pr, 'Notes': no
+                        })
+                        save_data(st.session_state.tasks, st.session_state.completed_tasks)
+                        st.success("Task updated.")
+                        rerun()
+                else:
+                    # Display details
+                    st.markdown(f"""
 **Assigned By:** {task['Assigned By']}  
 **Date Assigned:** {task['Date Assigned']}  
 **Due Date:** {task['Due Date']}  
 **Priority:** {task['Priority']}""")
-                st.markdown(f"**Notes:** {task['Notes']}")
+                    st.markdown(f"**Notes:** {task['Notes']}")
 
                 # Time-to-due progress
                 try:
@@ -133,18 +155,17 @@ with col2:
                 except:
                     pass
 
-                # Subtask progress
+                # Subtask progress and list
                 subs = task.get('Subtasks', [])
                 if subs:
                     done = sum(1 for s in subs if s.get('Completed'))
                     st.progress(done / len(subs))
                     for j, s in enumerate(subs):
                         ck = st.checkbox(s['Name'], value=s.get('Completed', False), key=f"sub_{i}_{j}")
-                        if ck != s.get('Completed'):
+                        if ck != s['Completed']:
                             s['Completed'] = ck
                             save_data(st.session_state.tasks, st.session_state.completed_tasks)
-
-                # Add subtask
+                # Add subtask inline
                 new_sub = st.text_input("New Subtask", key=f"new_sub_{i}")
                 if st.button("Add Subtask", key=f"add_sub_{i}") and new_sub:
                     task['Subtasks'].append({"Name": new_sub, "Completed": False})
@@ -163,7 +184,6 @@ with col2:
 # ---- Completed Tasks Below ----
 st.header("🏁 Completed Tasks")
 if st.session_state.completed_tasks:
-    # Loop through completed tasks and allow deletion
     for idx, task in enumerate(st.session_state.completed_tasks):
         with st.expander(task['Task']):
             st.markdown(f"""
@@ -188,9 +208,3 @@ st.sidebar.markdown(
     "**Teams Calendar:**  \n"
     "Sync via Microsoft Graph API & Azure AD integration."
 )
-st.markdown("""
-<hr style="border:none;height:2px;background:#c8102e;"/>
-<div style="text-align:center;padding:10px;background:#c8102e;color:#fff;">
-  Built by Aecon | For internal use only
-</div>
-""", unsafe_allow_html=True)
