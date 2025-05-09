@@ -7,6 +7,7 @@ import json
 import os
 import calendar
 from datetime import date, datetime
+import openpyxl
 
 # ---- Configuration ----
 DATA_PATH = "tasks_data.json"
