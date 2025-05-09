@@ -199,17 +199,36 @@ else:
 
 # ---- Export Controls ----
 st.sidebar.header("📥 Export Data")
-if st.sidebar.button("Export to Excel"):
+if st.sidebar.button("Export Data"):
     export_to_excel(st.session_state.tasks, st.session_state.completed_tasks)
-    st.sidebar.success("Exported to tasks_data.xlsx")
+    st.sidebar.success("Data exported to files (Excel/CSV) in the app directory.")
 
-# Provide download link if file exists
+# Download links
 if os.path.exists("tasks_data.xlsx"):
     with open("tasks_data.xlsx", "rb") as f:
-        data = f.read()
+        xldata = f.read()
     st.sidebar.download_button(
-        label="Download Excel",
-        data=data,
+        label="Download Excel workbook",
+        data=xldata,
         file_name="tasks_data.xlsx",
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
+elif os.path.exists("tasks_data.csv") and os.path.exists("completed_tasks.csv"):
+    with open("tasks_data.csv", "rb") as f1:
+        data1 = f1.read()
+    with open("completed_tasks.csv", "rb") as f2:
+        data2 = f2.read()
+    st.sidebar.download_button(
+        label="Download Active Tasks CSV",
+        data=data1,
+        file_name="tasks_data.csv",
+        mime="text/csv"
+    )
+    st.sidebar.download_button(
+        label="Download Completed Tasks CSV",
+        data=data2,
+        file_name="completed_tasks.csv",
+        mime="text/csv"
+    )
+else:
+    st.sidebar.info("No exported files found. Click 'Export Data' to generate.")
