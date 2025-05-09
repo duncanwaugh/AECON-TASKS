@@ -1,4 +1,7 @@
 import streamlit as st
+# Set wide mode at the very top
+st.set_page_config(page_title="Aecon Co‑op Task Tracker", layout="wide")
+
 import pandas as pd
 import json
 import os
@@ -22,10 +25,9 @@ def save_data(tasks, completed):
         json.dump({"tasks": tasks, "completed_tasks": completed}, f, default=str)
 
 # ---- Initialize State ----
-
 # Rerun helper for compatibility
 try:
-    rerun = rerun()
+    rerun = st.experimental_rerun
 except AttributeError:
     from streamlit.runtime.scriptrunner.script_run_context import get_script_run_ctx
     from streamlit.runtime.scriptrunner import RerunException
@@ -68,7 +70,7 @@ if st.sidebar.button("Add Task"):
         st.session_state.tasks.append(new_task)
         save_data(st.session_state.tasks, st.session_state.completed_tasks)
         st.sidebar.success(f"Added task: {task_name}")
-        rerun()()
+        rerun()
     else:
         st.sidebar.error("Task name is required.")
 
@@ -122,7 +124,7 @@ with col2:
 **Date Assigned:** {task['Date Assigned']}  
 **Due Date:** {task['Due Date']}  
 **Priority:** {task['Priority']}""")
-                st.markdown(f"**Notes:** {task['Notes']}")
+                st.markdown(f"**Notes:** {task['Notes']}" )
 
                 # Time-to-due progress
                 try:
@@ -146,18 +148,17 @@ with col2:
 
                 # Add subtask
                 new_sub = st.text_input("New Subtask", key=f"new_sub_{i}")
-                if st.button("Add Subtask", key=f"add_sub_{i}"):
-                    if new_sub:
-                        task['Subtasks'].append({"Name": new_sub, "Completed": False})
-                        save_data(st.session_state.tasks, st.session_state.completed_tasks)
-                        rerun()()
+                if st.button("Add Subtask", key=f"add_sub_{i}") and new_sub:
+                    task['Subtasks'].append({"Name": new_sub, "Completed": False})
+                    save_data(st.session_state.tasks, st.session_state.completed_tasks)
+                    rerun()
 
                 # Complete task
                 if st.button("Mark Task Completed", key=f"comp_{i}"):
                     st.session_state.completed_tasks.append(st.session_state.tasks.pop(i))
                     save_data(st.session_state.tasks, st.session_state.completed_tasks)
                     st.success(f"Completed: {task['Task']}")
-                    rerun()()
+                    rerun()
     else:
         st.info("No active tasks. Add one in the sidebar.")
 
