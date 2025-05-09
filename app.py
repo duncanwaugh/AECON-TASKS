@@ -195,12 +195,21 @@ if st.session_state.completed_tasks:
 else:
     st.info("No tasks completed yet.")
 
-# Sidebar Usage
-st.sidebar.markdown(
-    "---\n**Usage:**  \n"
-    "- Add tasks/subtasks & pick month.  \n"
-    "- View calendar and active tasks side-by-side.  \n"
-    "- Completed tasks appear below with notes.  \n\n"
-    "**Teams Calendar:**  \n"
-    "Sync via Microsoft Graph API & Azure AD integration."
-)
+
+
+# ---- Export Controls ----
+st.sidebar.header("📥 Export Data")
+if st.sidebar.button("Export to Excel"):
+    export_to_excel(st.session_state.tasks, st.session_state.completed_tasks)
+    st.sidebar.success("Exported to tasks_data.xlsx")
+
+# Provide download link if file exists
+if os.path.exists("tasks_data.xlsx"):
+    with open("tasks_data.xlsx", "rb") as f:
+        data = f.read()
+    st.sidebar.download_button(
+        label="Download Excel",
+        data=data,
+        file_name="tasks_data.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
