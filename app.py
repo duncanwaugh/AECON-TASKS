@@ -10,7 +10,7 @@ from datetime import date, datetime
 
 # ---- Configuration ----
 DATA_PATH = "tasks_data.json"
-LOGO_PATH = "aecon_logo.png"  # Place Aecon logo here
+LOGO_PATH = "AECON.png"  # Place Aecon logo here
 
 # ---- Data Persistence ----
 def load_data():
@@ -163,8 +163,19 @@ with col2:
 # ---- Completed Tasks Below ----
 st.header("🏁 Completed Tasks")
 if st.session_state.completed_tasks:
-    dfc = pd.DataFrame(st.session_state.completed_tasks)
-    st.dataframe(dfc[['Task','Assigned By','Date Assigned','Due Date','Priority','Notes']])
+    # Loop through completed tasks and allow deletion
+    for idx, task in enumerate(st.session_state.completed_tasks):
+        with st.expander(task['Task']):
+            st.markdown(f"""
+**Assigned By:** {task['Assigned By']}  
+**Date Assigned:** {task['Date Assigned']}  
+**Due Date:** {task['Due Date']}  
+**Priority:** {task['Priority']}""")
+            st.markdown(f"**Notes:** {task['Notes']}")
+            if st.button("Delete Completed Task", key=f"del_comp_{idx}"):
+                st.session_state.completed_tasks.pop(idx)
+                save_data(st.session_state.tasks, st.session_state.completed_tasks)
+                rerun()
 else:
     st.info("No tasks completed yet.")
 
@@ -177,3 +188,9 @@ st.sidebar.markdown(
     "**Teams Calendar:**  \n"
     "Sync via Microsoft Graph API & Azure AD integration."
 )
+st.markdown("""
+<hr style="border:none;height:2px;background:#c8102e;"/>
+<div style="text-align:center;padding:10px;background:#c8102e;color:#fff;">
+  Built by Aecon | For internal use only
+</div>
+""", unsafe_allow_html=True)
